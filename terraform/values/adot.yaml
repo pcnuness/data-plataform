@@ -1,0 +1,18 @@
+---
+manager:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 258Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+priorityClassName: system-cluster-critical
+nodeSelector:
+  cpe.plataform.com/node-group: critical-addons
+  kubernetes.io/os: linux
+tolerations:
+  - key: cpe.plataform.com/node-group
+    operator: Equal
+    value: critical-addons
+    effect: NoSchedule

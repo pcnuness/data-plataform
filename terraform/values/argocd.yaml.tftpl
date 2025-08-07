@@ -1,0 +1,81 @@
+global:
+  domain: ${url_gitops_argocd}
+  priorityClassName: system-cluster-critical
+
+redis-ha:
+  enabled: true
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+server:
+  replicas: 1
+
+repoServer:
+  replicas: 1
+
+applicationSet:
+  replicas: 1
+
+server:
+  extraArgs:
+  - --insecure
+  service:
+    type: NodePort
+  ingressGrpc:
+    enabled: true
+    isAWSALB: true
+    awsALB:
+      serviceType: NodePort
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/certificate-arn: ${aws_acm_arn}
+      alb.ingress.kubernetes.io/subnets: ${aws_subnets_ids}
+      alb.ingress.kubernetes.io/scheme: "internet-facing"
+      alb.ingress.kubernetes.io/backend-protocol: HTTP
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}, {"HTTPS":443}]'
+      alb.ingress.kubernetes.io/load-balancer-attributes: "idle_timeout.timeout_seconds=600"
+      alb.ingress.kubernetes.io/ssl-redirect: '443'
+      alb.ingress.kubernetes.io/success-codes: "200,404"
+      alb.ingress.kubernetes.io/target-type: "ip"
+    aws:
+      serviceType: ClusterIP
+      backendProtocolVersion: GRPC
+
+configs:
+  secret:
+    argocdServerAdminPasswordMtime: ${argocd_admin_password_mtime}
+    argocdServerAdminPassword: ${argocd_admin_password}
+  params:
+    server.insecure: true
+  cm:
+    create: true
+    exec.enabled: true
+    timeout.reconciliation: 15s
+  styles: |
+    .sidebar__container::before {
+      content: '${env_name}';
+      display: block;
+      background-color: #d4351c;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      padding: 10px 4px;
+      overflow: hidden;
+      white-space: nowrap;
+      margin-top: 20px;
+    }
+    .sidebar--collapsed .sidebar__container::before {
+      content: '${env_abbreviation}';
+      font-size: 140%;
+      padding: 4px;
+    }

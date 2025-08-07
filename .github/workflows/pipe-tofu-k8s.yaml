@@ -1,0 +1,179 @@
+name: 'Deploy Kubernetes in AWS'
+description: "Create Setup Initial EKS in AWS with Addons"
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Ambiente de execução'
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+      gitopsURL:
+        required: true
+        type: string
+      gitopsRepoCluster:
+        required: true
+        type: string
+env:
+  WORK_DIR: terraform
+  AWS_REGION: us-east-1
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    outputs:
+      account_id: ${{ steps.aws.outputs.account_id }}
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu-version: 1.9.0
+
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+  bootstrap:
+    runs-on: ubuntu-latest
+    needs: source
+    steps:
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Criar bucket do backend se não existir
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          BUCKET="${ACCOUNT_ID}-backend-iac-opentofu"
+          echo "bucket_name=$BUCKET" >> $GITHUB_ENV
+          REGION="${{ env.AWS_REGION }}"
+
+          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "✅ Bucket $BUCKET já existe"
+          else
+            echo "🚀 Criando bucket $BUCKET"
+            if [ "$REGION" = "us-east-1" ]; then
+              aws s3api create-bucket --bucket "$BUCKET"
+            else
+              aws s3api create-bucket \
+                --bucket "$BUCKET" \
+                --region "$REGION" \
+                --create-bucket-configuration LocationConstraint="$REGION"
+            fi
+          fi
+
+  iac-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Instalar Checkov
+        run: pip install checkov
+
+      - name: Rodar Checkov
+        run: |
+          checkov -d . \
+            --framework terraform \
+            --quiet \
+            --var-file environments/${{ github.event.inputs.stage }}.tfvars
+        working-directory: ${{ env.WORK_DIR }}
+        continue-on-error: true
+
+  provision:
+    runs-on: ubuntu-latest
+    needs: iac-security
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu-version: 1.9.0
+
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Inicializar backend S3
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          BUCKET="$ACCOUNT_ID-backend-iac-opentofu"
+          KEY_PATH="${{ github.repository }}/eks-adr-kubernetes/terraform/terraform.tfstate"
+
+          echo "Bucket: $BUCKET"
+          echo "Key: $KEY_PATH"
+          echo "Region: ${{ env.AWS_REGION }}"
+
+          tofu init \
+            -backend-config="bucket=$BUCKET" \
+            -backend-config="key=$KEY_PATH" \
+            -backend-config="region=${{ env.AWS_REGION }}"
+        working-directory: ${{ env.WORK_DIR }}
+
+      - name: tofu plan
+        run: |
+          tofu plan -var-file="environments/${{ github.event.inputs.stage }}.tfvars" -out=tfplan -compact-warnings
+        working-directory: ${{ env.WORK_DIR }}
+
+      - name: tofu apply
+        run: tofu apply -auto-approve tfplan
+        working-directory: ${{ env.WORK_DIR }}
+
+  gitops:
+    runs-on: ubuntu-latest
+    needs: provision
+    steps:
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          gitops-pwd: ${{ secrets.ARGOCD_PWD }}
+
+      - name: Install ArgoCD
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+          argocd version
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+      - name: Login no ArgoCD via kubectl secret
+        id: argocd-login
+        run: |
+          ARGOCD_PWD=$(kubectl get secret -n argocd argocd-initial-admin-secret \
+            -o jsonpath="{.data.password}" | base64 -d)
+          argocd login https://${{ inputs.gitopsURL }} \
+            --username admin \
+            --password "${{ secrets.ARGOCD_PWD }}" \
+            --insecure
+      - name: Registrar cluster no ArgoCD
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          CLUSTER_ARN="arn:aws:eks:${AWS_REGION}:${ACCOUNT_ID}:cluster/${CLUSTER_NAME}"
+          argocd cluster add "$CLUSTER_ARN" \
+            --name eks-demo-project \
+            --label environment=develop \
+            --label enable_ingress-nginx=true \
+            --annotation addons_repo_revision=develop \
+            --annotation addons_repo_url=${{ inputs.gitopsRepoCluster }} \
+            --yes

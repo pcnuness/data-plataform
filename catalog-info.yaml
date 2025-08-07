@@ -1,0 +1,38 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.projectName }}-eks-infrastructure
+  title: ${{ values.projectName | title }} EKS Infrastructure
+  description: |
+    Infraestrutura EKS para o projeto ${{ values.projectName }} usando OpenTofu.
+    Gerencia clusters Kubernetes na AWS com pipeline autopilot.
+  annotations:
+    backstage.io/source-location: url:https://github.com/${{ values.owner }}/${{ values.projectName }}
+    github.com/project-slug: ${{ values.owner }}/${{ values.projectName }}
+    backstage.io/techdocs-ref: dir:.
+    aws.com/eks-cluster-name: ${{ values.projectName }}-eks
+    aws.com/region: ${{ values.awsRegion }}
+  tags:
+    - infrastructure
+    - eks
+    - kubernetes
+    - opentofu
+    - terraform
+    - aws
+    - gitops
+  links:
+    - url: https://github.com/${{ values.owner }}/${{ values.projectName }}/actions
+      title: GitHub Actions
+      icon: github
+    - url: https://console.aws.amazon.com/eks/home?region=${{ values.awsRegion }}#/clusters
+      title: AWS EKS Console
+      icon: cloud
+
+spec:
+  type: infrastructure
+  lifecycle: production
+  owner: platform-team
+  system: kubernetes-platform
+  dependsOn:
+    - resource:aws-account
+    - resource:github-repository
