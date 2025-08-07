@@ -12,12 +12,6 @@ on:
           - dev
           - stage
           - prod
-      gitopsURL:
-        required: true
-        type: string
-      gitopsRepoCluster:
-        required: true
-        type: string
 env:
   WORK_DIR: terraform
   AWS_REGION: us-east-1
@@ -136,44 +130,3 @@ jobs:
       - name: tofu apply
         run: tofu apply -auto-approve tfplan
         working-directory: ${{ env.WORK_DIR }}
-
-  gitops:
-    runs-on: ubuntu-latest
-    needs: provision
-    steps:
-      - name: Configurar credenciais AWS
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-          gitops-pwd: ${{ secrets.ARGOCD_PWD }}
-
-      - name: Install ArgoCD
-        run: |
-          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          chmod +x /usr/local/bin/argocd
-          argocd version
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
-      - name: Login no ArgoCD via kubectl secret
-        id: argocd-login
-        run: |
-          ARGOCD_PWD=$(kubectl get secret -n argocd argocd-initial-admin-secret \
-            -o jsonpath="{.data.password}" | base64 -d)
-          argocd login https://${{ inputs.gitopsURL }} \
-            --username admin \
-            --password "${{ secrets.ARGOCD_PWD }}" \
-            --insecure
-      - name: Registrar cluster no ArgoCD
-        run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-          CLUSTER_ARN="arn:aws:eks:${AWS_REGION}:${ACCOUNT_ID}:cluster/${CLUSTER_NAME}"
-          argocd cluster add "$CLUSTER_ARN" \
-            --name eks-demo-project \
-            --label environment=develop \
-            --label enable_ingress-nginx=true \
-            --annotation addons_repo_revision=develop \
-            --annotation addons_repo_url=${{ inputs.gitopsRepoCluster }} \
-            --yes
