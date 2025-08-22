@@ -29,7 +29,7 @@ module "ebs_csi_driver_irsa" {
   oidc_providers = {
     main = {
       provider_arn               = local.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:ebs-csi-controller"]
+      namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
     }
   }
 }
