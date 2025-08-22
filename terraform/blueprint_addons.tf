@@ -63,7 +63,7 @@ module "eks_addons" {
   }
 
 
-  enable_argocd = true
+  enable_argocd = false
   argocd = {
     name          = "argocd"
     chart_version = "8.2.5"
