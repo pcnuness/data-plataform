@@ -72,8 +72,8 @@ module "eks_addons" {
     skip_crds     = false
     values = [
       templatefile("${path.root}/values/argocd.yaml.tftpl", {
-        url_gitops_argocd           = "gitops.079910998645.realhandsonlabs.net"
-        aws_acm_arn                 = "arn:aws:acm:us-east-1:079910998645:certificate/6851a041-44d2-4257-9935-fbb6b904afd4"
+        url_gitops_argocd           = "gitops.905418053603.realhandsonlabs.net"
+        aws_acm_arn                 = "arn:aws:acm:us-east-1:905418053603:certificate/b96d9009-dbfb-4c5f-9086-2eb63f59bd0d"
         argocd_admin_password_mtime = null_resource.argocd_admin_password.triggers.modified
         argocd_admin_password       = null_resource.argocd_admin_password.triggers.hash
         aws_subnets_ids             = local.subnet_public_ids
