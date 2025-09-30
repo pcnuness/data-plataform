@@ -273,7 +273,7 @@ module "secrets_manager_argocd" {
   block_public_policy     = true
   secret_string = jsonencode({
     ARGOCD_ADMIN_PASSWORD = random_password.argocd_admin_password.result
-    ARGOCD_ENDPOINT = "gitops.905418053603.realhandsonlabs.net"
+    ARGOCD_ENDPOINT = "gitops.832570432198.realhandsonlabs.net"
   })
 }
 

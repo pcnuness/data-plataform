@@ -38,7 +38,6 @@ server:
     enabled: true
     ingressClassName: alb
     annotations:
-      alb.ingress.kubernetes.io/certificate-arn: ${aws_acm_arn}
       alb.ingress.kubernetes.io/subnets: ${aws_subnets_ids}
       alb.ingress.kubernetes.io/scheme: "internet-facing"
       alb.ingress.kubernetes.io/backend-protocol: HTTP
