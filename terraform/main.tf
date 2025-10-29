@@ -273,7 +273,7 @@ module "secrets_manager_argocd" {
   block_public_policy     = true
   secret_string = jsonencode({
     ARGOCD_ADMIN_PASSWORD = random_password.argocd_admin_password.result
-    ARGOCD_ENDPOINT = "gitops.832570432198.realhandsonlabs.net"
+    ARGOCD_ENDPOINT = "gitops.654654545585.realhandsonlabs.net"
   })
 }
 
@@ -307,13 +307,13 @@ output "eks_context_name" {
 
 output "argocd_url" {
   description = "URL do ArgoCD"
-  value       = "https://gitops.905418053603.realhandsonlabs.net"
+  value       = "https://gitops.654654545585.realhandsonlabs.net"
 }
 
 output "argocd_login_command" {
   description = "Comando de login no ArgoCD"
   value = <<-EOT
-    argocd login https://gitops.905418053603.realhandsonlabs.net \
+    argocd login https://gitops.654654545585.realhandsonlabs.net \
       --insecure \
       --username admin \
       --password $(kubectl get secret \
