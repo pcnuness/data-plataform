@@ -9,13 +9,13 @@ controller:
     requests:
       cpu: 100m
       memory: 90Mi
-  metrics:
-    enabled: true
-    service:
-      enabled: true 
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port:   "10254"
+  #metrics:
+  #  enabled: true
+  #  service:
+  #    enabled: true 
+  #    annotations:
+  #      prometheus.io/scrape: "true"
+  #      prometheus.io/port:   "10254"
   ingressClassResource:
     name: nginx
     default: true
