@@ -6,7 +6,7 @@
 # Configurações Básicas
 name        = "data-plataform-dev"
 eks_name    = "data-plataform-dev-eks"
-eks_version = "1.31"
+eks_version = "1.32"
 region      = "us-east-1"
 environment = "develop"
 
