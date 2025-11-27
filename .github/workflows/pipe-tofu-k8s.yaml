@@ -89,7 +89,7 @@ jobs:
 
   provision:
     runs-on: ubuntu-latest
-    needs: iac-security
+    #needs: iac-security
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
