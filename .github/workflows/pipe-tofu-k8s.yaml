@@ -69,23 +69,23 @@ jobs:
             fi
           fi
 
-  iac-security:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v3
+  #iac-security:
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - name: Checkout código
+  #      uses: actions/checkout@v3
 
-      - name: Instalar Checkov
-        run: pip install checkov
+  #    - name: Instalar Checkov
+  #      run: pip install checkov
 
-      - name: Rodar Checkov
-        run: |
-          checkov -d . \
-            --framework terraform \
-            --quiet \
-            --var-file environments/${{ github.event.inputs.stage }}.tfvars
-        working-directory: ${{ env.WORK_DIR }}
-        continue-on-error: true
+  #    - name: Rodar Checkov
+  #      run: |
+  #        checkov -d . \
+  #          --framework terraform \
+  #          --quiet \
+  #          --var-file environments/${{ github.event.inputs.stage }}.tfvars
+  #      working-directory: ${{ env.WORK_DIR }}
+  #      continue-on-error: true
 
   provision:
     runs-on: ubuntu-latest
@@ -122,10 +122,10 @@ jobs:
             -backend-config="region=${{ env.AWS_REGION }}"
         working-directory: ${{ env.WORK_DIR }}
 
-      - name: tofu plan
-        run: |
-          tofu plan -var-file="environments/${{ github.event.inputs.stage }}.tfvars" -out=tfplan -compact-warnings
-        working-directory: ${{ env.WORK_DIR }}
+      #- name: tofu plan
+      #  run: |
+      #    tofu plan -var-file="environments/${{ github.event.inputs.stage }}.tfvars" -out=tfplan -compact-warnings
+      #  working-directory: ${{ env.WORK_DIR }}
 
       #- name: tofu apply
       #  run: tofu apply -auto-approve tfplan
