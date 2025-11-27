@@ -132,5 +132,5 @@ jobs:
       #  working-directory: ${{ env.WORK_DIR }}
       
       - name: tofu apply
-        run: tofu apply -destroy
+        run: tofu destroy
         working-directory: ${{ env.WORK_DIR }}
