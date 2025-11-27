@@ -127,6 +127,10 @@ jobs:
           tofu plan -var-file="environments/${{ github.event.inputs.stage }}.tfvars" -out=tfplan -compact-warnings
         working-directory: ${{ env.WORK_DIR }}
 
+      #- name: tofu apply
+      #  run: tofu apply -auto-approve tfplan
+      #  working-directory: ${{ env.WORK_DIR }}
+      
       - name: tofu apply
-        run: tofu apply -auto-approve tfplan
+        run: tofu apply -destroy
         working-directory: ${{ env.WORK_DIR }}
